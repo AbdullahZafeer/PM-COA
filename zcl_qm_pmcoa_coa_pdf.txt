@@ -1,0 +1,98 @@
+CLASS zcl_qm_pmcoa_coa_pdf DEFINITION PUBLIC FINAL CREATE PUBLIC.
+  PUBLIC SECTION.
+    CLASS-METHODS get_pdf
+      IMPORTING
+        im_inspectionlot TYPE zqm_pmcoa_c_coa_hdr-inspectionlot
+        im_remarks       TYPE zqm_pmcoa_c_coa_hdr-remarks
+        im_company       TYPE string OPTIONAL " <--- Add parameter
+      RETURNING
+        VALUE(rv_pdf)    TYPE xstring
+      RAISING
+        cx_fp_fdp_error
+        cx_fp_form_reader
+        cx_fp_ads_util.
+
+  PRIVATE SECTION.
+    CLASS-METHODS escape_xml
+      IMPORTING iv_value TYPE string
+      RETURNING VALUE(rv_value) TYPE string.
+ENDCLASS.
+
+
+
+CLASS ZCL_QM_PMCOA_COA_PDF IMPLEMENTATION.
+
+
+    METHOD get_pdf.
+
+    DATA(lo_fdp_api) = cl_fp_fdp_services=>get_instance(
+      iv_max_depth          = 2
+      iv_service_definition = `ZQM_PMCOA_SRV` ).
+
+    DATA(lt_keys) = lo_fdp_api->get_keys( ).
+    lt_keys[ name = 'INSPECTIONLOT' ]-value = im_inspectionlot.
+
+    " 1. Get raw XML from FDP
+    DATA(lv_xml_xstring) = lo_fdp_api->read_to_xml_v2(
+      it_select = lt_keys ).
+
+    CALL TRANSFORMATION zqm_sort_coa_char
+      SOURCE XML lv_xml_xstring
+      RESULT XML lv_xml_xstring.
+
+    " 2. Convert sorted XML to string
+    DATA(lv_xml_string) = cl_abap_conv_codepage=>create_in( )->convert(
+      source = lv_xml_xstring
+    ).
+
+    " 3. Inject Remarks
+    DATA(lv_remarks) = escape_xml( CONV string( im_remarks ) ).
+
+    REPLACE FIRST OCCURRENCE OF '<Remarks></Remarks>' IN lv_xml_string
+      WITH |<Remarks>{ lv_remarks }</Remarks>|.
+
+    REPLACE FIRST OCCURRENCE OF '<Remarks/>' IN lv_xml_string
+      WITH |<Remarks>{ lv_remarks }</Remarks>|.
+
+    " 4. Convert back to xstring
+    lv_xml_xstring = cl_abap_conv_codepage=>create_out( )->convert(
+      source = lv_xml_string
+    ).
+
+   " --- DYNAMIC FORM SELECTION START ---
+    DATA lv_form_name TYPE fpname.
+    IF im_company = 'NOVENTA'.
+      lv_form_name = 'ZQM_PMCOA_COA_FORM'.
+    ELSE.
+      lv_form_name = 'ZQM_PMCOA_COA_FORM_S'.
+    ENDIF.
+
+    DATA(lo_reader) = cl_fp_form_reader=>create_form_reader( lv_form_name ).
+    " --- DYNAMIC FORM SELECTION END ---
+
+    DATA(ls_layout) = lo_reader->get_layout( ).
+
+    " 5. Render Final PDF
+    cl_fp_ads_util=>render_pdf(
+      EXPORTING
+        iv_xml_data   = lv_xml_xstring
+        iv_xdp_layout = ls_layout
+        iv_locale     = 'en_US'
+      IMPORTING
+        ev_pdf        = rv_pdf ).
+
+  ENDMETHOD.
+
+
+  METHOD escape_xml.
+
+    rv_value = iv_value.
+
+    REPLACE ALL OCCURRENCES OF '&' IN rv_value WITH '&amp;'.
+    REPLACE ALL OCCURRENCES OF '<' IN rv_value WITH '&lt;'.
+    REPLACE ALL OCCURRENCES OF '>' IN rv_value WITH '&gt;'.
+    REPLACE ALL OCCURRENCES OF '"' IN rv_value WITH '&quot;'.
+    REPLACE ALL OCCURRENCES OF '''' IN rv_value WITH '&apos;'.
+
+  ENDMETHOD.
+ENDCLASS.

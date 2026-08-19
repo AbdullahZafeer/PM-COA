@@ -1,0 +1,37 @@
+@AccessControl.authorizationCheck: #NOT_REQUIRED
+@EndUserText.label: 'AQM CoA Header - Consumption'
+@Metadata.allowExtensions: true
+@Metadata.ignorePropagatedAnnotations: true
+define root view entity ZQM_PMCOA_C_COA_HDR
+  provider contract transactional_query
+  as projection on ZQM_PMCOA_I_COA_HDR
+{
+     @Consumption.valueHelpDefinition: [{ entity: { name: 'I_InspectionLotStdVH', element: 'InspectionLot' } }]
+      key InspectionLot,
+
+      CompanyCode,
+      @Consumption.valueHelpDefinition: [{ entity: { name: 'I_Plant', element: 'Plant' } }]
+      Plant,
+
+      ProcedureNo,
+      SpecificationNo,
+      MaterialName,
+      Supplier,
+      ManufacturerName,
+      ItemCode,
+      GRNNo,
+      BatchNo,
+      ReceivingDate,
+
+//      @Semantics.quantity.unitOfMeasure: 'QuantityUnit'
+      Quantity,
+//      QuantityUnit,
+
+      ExpiryRetestDate,
+      ManufacturerLotNo,
+      StorageCondition,
+      Remarks,
+      Disposition,
+
+      _Char : redirected to composition child ZQM_PMCOA_C_COA_CHAR
+}

@@ -1,0 +1,32 @@
+@AccessControl.authorizationCheck: #NOT_REQUIRED
+@EndUserText.label: 'AQM CoA Characteristics - Consumption'
+@Metadata.allowExtensions: true
+@Metadata.ignorePropagatedAnnotations: true
+define view entity ZQM_PMCOA_C_COA_CHAR
+  as projection on ZQM_PMCOA_I_COA_CHAR
+{
+      @EndUserText.label: 'Inspection Lot Number'
+  key InspectionLot,
+
+  key InspPlanOperationInternalID,
+  key InspectionCharacteristic,
+
+      @EndUserText.label: 'Test'
+      Test,
+
+      @EndUserText.label: 'Specification'
+      Specification,
+
+      
+      @EndUserText.label: 'Result'
+      ResultA,
+
+      
+      InspectionMethod,
+      InspSpecIsSelectedSetRequired,
+      InspSpecHasTargetValue,
+      InspSpecHasUpperLimit,
+      InspSpecHasLowerLimit,
+
+      _Header : redirected to parent ZQM_PMCOA_C_COA_HDR
+}

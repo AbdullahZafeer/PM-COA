@@ -1,0 +1,16 @@
+projection;
+strict ( 2 );
+
+define behavior for ZQM_PMCOA_C_COA_HDR alias CoAHeader
+{
+
+  use action GenerateCoA;
+
+  use association _Char;
+}
+
+define behavior for ZQM_PMCOA_C_COA_CHAR alias CoACharacteristic
+{
+
+  use association _Header;
+}

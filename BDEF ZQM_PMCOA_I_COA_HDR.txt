@@ -1,0 +1,24 @@
+unmanaged implementation in class zbp_qm_pmcoa_i_coa_hdr unique;
+strict ( 2 );
+
+define behavior for ZQM_PMCOA_I_COA_HDR alias CoAHeader
+lock master
+authorization master ( instance )
+{
+  field ( readonly ) InspectionLot;
+
+  action GenerateCoA
+    parameter ZQM_PMCOA_A_COA_PARAM
+    result [1] ZQM_PMCOA_A_COA_RESULT;
+
+  association _Char { }
+}
+
+define behavior for ZQM_PMCOA_I_COA_CHAR alias CoACharacteristic
+lock dependent by _Header
+authorization dependent by _Header
+{
+  field ( readonly ) InspectionLot;
+
+  association _Header;
+}

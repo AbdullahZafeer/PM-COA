@@ -1,0 +1,102 @@
+@AbapCatalog.viewEnhancementCategory: [#NONE]
+
+@AccessControl.authorizationCheck: #NOT_REQUIRED
+
+@EndUserText.label: 'AQM CoA - Consolidated Result Text'
+
+@Metadata.ignorePropagatedAnnotations: true
+
+@ObjectModel.usageType:{
+
+serviceQuality: #X,
+
+sizeCategory: #S,
+
+dataClass: #MIXED
+
+}
+
+define view entity ZQM_PMCOA_RText
+
+as select from I_InspectionCharacteristic as Char
+
+
+
+left outer join I_InspectionResult as Res
+
+on Res.InspectionLot = Char.InspectionLot
+
+and Res.InspPlanOperationInternalID = Char.InspPlanOperationInternalID
+
+and Res.InspectionCharacteristic = Char.InspectionCharacteristic
+
+
+
+left outer join I_CharcAttributeCodeText as Text
+
+on Res.CharacteristicAttributeCodeGrp = Text.CharacteristicAttributeCodeGrp
+
+and Res.CharacteristicAttributeCode = Text.CharacteristicAttributeCode
+
+and Text.Language = $session.system_language
+
+
+
+left outer join I_UnitOfMeasureText as UoMText
+
+on UoMText.UnitOfMeasure = Char.InspectionSpecificationUnit
+
+and UoMText.Language = $session.system_language
+
+
+
+{
+
+key Char.InspectionLot,
+
+key Char.InspPlanOperationInternalID,
+
+key Char.InspectionCharacteristic,
+
+
+
+case
+
+when Char.InspSpecHasTargetValue = 'X'
+
+or Char.InspSpecHasUpperLimit = 'X'
+
+or Char.InspSpecHasLowerLimit = 'X'
+
+then cast(
+
+concat_with_space(
+
+cast( fltp_to_dec( Res.InspectionResultMeanValue as abap.dec(20,3) ) as abap.char(200) ),
+
+coalesce( UoMText.UnitOfMeasureTechnicalName, cast( '' as abap.char(10) ) ),
+
+1
+
+) as abap.char(255)
+
+)
+
+
+
+when Char.InspSpecIsSelectedSetRequired = 'X'
+
+and Char.InspSpecHasTargetValue = ''
+
+and Char.InspSpecHasUpperLimit = ''
+
+and Char.InspSpecHasLowerLimit = ''
+
+then cast( Text.CharacteristicAttributeCodeTxt as abap.char(255) )
+
+
+else cast( '' as abap.char(255) )
+
+end as FinalResult
+
+}

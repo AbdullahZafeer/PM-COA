@@ -1,0 +1,82 @@
+@AbapCatalog.viewEnhancementCategory: [#NONE]
+@AccessControl.authorizationCheck: #NOT_REQUIRED
+@EndUserText.label: 'AQM CoA Characteristics - Interface'
+@Metadata.ignorePropagatedAnnotations: true
+
+
+
+define view entity ZQM_PMCOA_I_COA_CHAR
+  as select from I_InspectionCharacteristic as Char
+
+  left outer join I_InspectionLot as Lot
+    on Lot.InspectionLot = Char.InspectionLot
+
+  left outer join ZQM_PMCOA_RText as ResultLogic
+    on  ResultLogic.InspectionLot               = Char.InspectionLot
+    and ResultLogic.InspPlanOperationInternalID = Char.InspPlanOperationInternalID
+    and ResultLogic.InspectionCharacteristic    = Char.InspectionCharacteristic
+
+//  left outer join ZQM_I_SPEC_MAX_DATE as MaxDateLogic
+//    on  MaxDateLogic.InspectionLot               = Char.InspectionLot
+//    and MaxDateLogic.InspPlanOperationInternalID = Char.InspPlanOperationInternalID
+//    and MaxDateLogic.InspectionCharacteristic    = Char.InspectionCharacteristic
+//
+//  left outer join ZQM_I_SPEC_LONGTEXTP as Spec
+//    on  Spec.InspectionMethod = Char.InspectionMethod
+//    and Spec.Plant            = Lot.Plant
+//    and Spec.CreatedAt = MaxDateLogic.MaxCreatedAt
+//    and Spec.TextUUIDHex      = MaxDateLogic.MaxTextUUID 
+
+// ====================================================================
+  // Reusing two-tier bridge view to safely handle tied upload timestamps
+  // ====================================================================
+  left outer join ZQM_I_SPEC_MAX_DATE_T2 as MaxDateLogic
+    on  MaxDateLogic.InspectionLot               = Char.InspectionLot
+    and MaxDateLogic.InspPlanOperationInternalID = Char.InspPlanOperationInternalID
+    and MaxDateLogic.InspectionCharacteristic    = Char.InspectionCharacteristic
+
+  // ====================================================================
+  // Fetching the text using Method, Plant, Max Date, and Tie-Breaker UUID
+  // ====================================================================
+  left outer join ZQM_I_SPEC_LONGTEXT as Spec
+    on  Spec.InspectionMethod = Char.InspectionMethod
+    and Spec.Plant            = Lot.Plant
+    and Spec.CreatedAt        = MaxDateLogic.MaxCreatedAt
+    and Spec.TextUUIDHex      = MaxDateLogic.MaxTextUUID
+
+  association to parent ZQM_PMCOA_I_COA_HDR as _Header
+    on _Header.InspectionLot = $projection.InspectionLot
+
+{
+      @EndUserText.label: 'Inspection Lot Number'
+  key Char.InspectionLot,
+
+  key Char.InspPlanOperationInternalID,
+  key Char.InspectionCharacteristic,
+
+      @EndUserText.label: 'Test'
+      Char.InspectionCharacteristicText as Test,
+
+      @EndUserText.label: 'Specification'
+      Spec.LongText as Specification,
+
+      @EndUserText.label: 'Result'
+      ResultLogic.FinalResult as ResultA,
+
+      Char.InspectionMethod,
+
+      @EndUserText.label: 'Plant'
+      Lot.Plant as Plant,
+
+      Char.InspSpecIsSelectedSetRequired,
+      Char.InspSpecHasTargetValue,
+      Char.InspSpecHasUpperLimit,
+      Char.InspSpecHasLowerLimit,
+
+      _Header
+}
+where 
+     Char.InspSpecIsSelectedSetRequired = 'X'
+  or Char.InspSpecHasTargetValue        = 'X'
+  or Char.InspSpecHasUpperLimit         = 'X'
+  or Char.InspSpecHasLowerLimit         = 'X'

@@ -1,0 +1,6 @@
+@ObjectModel.leadingEntity.name: 'ZQM_PMCOA_C_COA_HDR'
+@EndUserText.label: 'Service definiton for PMCOA'
+define service ZQM_PMCOA_SRV {
+  expose ZQM_PMCOA_C_COA_HDR  as Header;
+  expose ZQM_PMCOA_C_COA_CHAR as Char;
+}

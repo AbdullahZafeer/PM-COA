@@ -1,0 +1,67 @@
+CLASS zbp_qm_pmcoa_i_coa_hdr DEFINITION PUBLIC ABSTRACT FINAL FOR BEHAVIOR OF zqm_pmcoa_i_coa_hdr.
+ENDCLASS.
+
+CLASS ZBP_QM_PMCOA_I_COA_HDR IMPLEMENTATION.
+ENDCLASS.
+
+
+
+CLASS lhc_CoAHeader DEFINITION INHERITING FROM cl_abap_behavior_handler.
+  PRIVATE SECTION.
+
+    METHODS get_instance_authorizations FOR INSTANCE AUTHORIZATION
+      IMPORTING keys REQUEST requested_authorizations FOR CoAHeader RESULT result.
+
+    METHODS GenerateCoA FOR MODIFY
+      IMPORTING keys FOR ACTION CoAHeader~GenerateCoA RESULT result.
+
+    METHODS lock FOR LOCK
+      IMPORTING keys FOR LOCK CoAHeader.
+
+ENDCLASS.
+
+CLASS lhc_CoAHeader IMPLEMENTATION.
+  METHOD get_instance_authorizations.
+
+    LOOP AT keys ASSIGNING FIELD-SYMBOL(<ls_key>).
+      APPEND VALUE #(
+        %tky = <ls_key>-%tky
+        %action-GenerateCoA = if_abap_behv=>auth-allowed
+      ) TO result.
+    ENDLOOP.
+
+  ENDMETHOD.
+
+  METHOD GenerateCoA.
+    LOOP AT keys ASSIGNING FIELD-SYMBOL(<ls_key>).
+      TRY.
+          " 1. Extract the selected company
+          DATA(lv_company) = <ls_key>-%param-CompanyCode.
+
+          " 2. Pass it to the PDF class
+          DATA(lv_pdf) = zcl_qm_pmcoa_coa_pdf=>get_pdf(
+            im_inspectionlot = <ls_key>-InspectionLot
+            im_remarks       = <ls_key>-%param-Remarks
+            im_company       = CONV #( lv_company )
+          ).
+
+          APPEND VALUE #(
+            %tky = <ls_key>-%tky
+            %param = VALUE #(
+              MimeType      = 'application/pdf'
+              FileName      = |COA_{ lv_company }_{ <ls_key>-InspectionLot }.pdf|
+              FileContent   = lv_pdf
+              FileExtension = 'pdf'
+            )
+          ) TO result.
+
+        CATCH cx_fp_fdp_error cx_fp_form_reader cx_fp_ads_util INTO DATA(lx_err).
+          DATA(lv_msg) = lx_err->get_text( ).
+      ENDTRY.
+    ENDLOOP.
+  ENDMETHOD.
+
+  METHOD lock.
+    " Do nothing — read-only scenario
+  ENDMETHOD.
+ENDCLASS.

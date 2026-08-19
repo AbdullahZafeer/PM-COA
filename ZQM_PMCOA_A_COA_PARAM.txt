@@ -1,0 +1,9 @@
+@EndUserText.label: 'AQM CoA Print Parameters'
+define abstract entity ZQM_PMCOA_A_COA_PARAM
+{
+  @EndUserText.label: 'Remarks'
+  Remarks     : abap.char( 255 );
+  
+  @EndUserText.label: 'Company Code'
+  CompanyCode : abap.char( 10 ); 
+}

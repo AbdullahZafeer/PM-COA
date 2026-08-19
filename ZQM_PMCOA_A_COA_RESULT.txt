@@ -1,0 +1,12 @@
+@EndUserText.label: 'AQM CoA PDF Result'
+define abstract entity ZQM_PMCOA_A_COA_RESULT
+{
+  @Semantics.mimeType: true
+  MimeType      : abap.string( 0 );
+
+  FileName      : abap.string( 0 );
+
+  FileContent   : abap.rawstring( 0 );
+
+  FileExtension : abap.string( 0 );
+}

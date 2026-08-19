@@ -1,0 +1,125 @@
+@AbapCatalog.viewEnhancementCategory: [#NONE]
+@AccessControl.authorizationCheck: #NOT_REQUIRED
+@EndUserText.label: 'AQM CoA Header - Interface'
+@Metadata.ignorePropagatedAnnotations: true
+define root view entity ZQM_PMCOA_I_COA_HDR
+  as select from I_InspectionLot as Lot
+
+  left outer join I_BusinessPartner as BP
+    on BP.BusinessPartner = Lot.Supplier
+
+  left outer join I_Batch as Bat
+    on  Bat.Material = Lot.Material
+    and Bat.Batch    = Lot.Batch
+    and Bat.Plant    = Lot.Plant
+
+  left outer join ZQM_PMCOA_DISP as UD
+    on UD.InspectionLot = Lot.InspectionLot
+
+  // ====================================================================
+  // 1. DYNAMIC JOIN FOR PROCEDURE NO.
+  // ====================================================================
+  left outer join I_ClfnCharacteristic as ProcChar
+    on ProcChar.Characteristic = 'PROCEDURENO' 
+
+  left outer join I_ClfnObjectCharcValue as ProcVal
+    on  ProcVal.ClfnObjectID    = concat( Lot.BillOfOperationsType, 
+                                    concat( Lot.BillOfOperationsGroup, Lot.BillOfOperationsVariant ) )
+    and ProcVal.ClfnObjectTable = 'PLKO' 
+    and ProcVal.CharcInternalID = ProcChar.CharcInternalID 
+
+  // ====================================================================
+  // 2. DYNAMIC JOIN FOR SPECIFICATION NO.
+  // ====================================================================
+  left outer join I_ClfnCharacteristic as SpecChar
+    on SpecChar.Characteristic = 'SPECIFICATIONNO' 
+
+  left outer join I_ClfnObjectCharcValue as SpecVal
+    on  SpecVal.ClfnObjectID    = concat( Lot.BillOfOperationsType, 
+                                    concat( Lot.BillOfOperationsGroup, Lot.BillOfOperationsVariant ) )
+    and SpecVal.ClfnObjectTable = 'PLKO'
+    and SpecVal.CharcInternalID = SpecChar.CharcInternalID 
+    
+  left outer join I_ProductStorage_2 as ps
+    on ps.Product = Lot.Material
+      
+  left outer join I_Tempindcndntext as stgtext
+    on stgtext.TemperatureConditionInd = ps.StorageConditions
+    and stgtext.Language = $session.system_language
+      
+  left outer join I_PurchaseOrderItemAPI01 as POItem
+    on  POItem.PurchaseOrder     = Lot.PurchasingDocument
+    and POItem.PurchaseOrderItem = Lot.PurchasingDocumentItem
+
+  // ====================================================================
+  // 3. JOIN FOR QUANTITY UNIT TEXT
+  // ====================================================================
+  left outer join I_UnitOfMeasureText as UoMText
+    on  UoMText.UnitOfMeasure = Lot.InspectionLotQuantityUnit
+    and UoMText.Language      = $session.system_language
+      
+  composition [0..*] of ZQM_PMCOA_I_COA_CHAR as _Char
+{
+      @EndUserText.label: 'Inspection Lot Number'
+  key Lot.InspectionLot,
+
+      @EndUserText.label: 'Company Code'
+      Lot.CompanyCode,
+
+      @EndUserText.label: 'Plant'
+      Lot.Plant,
+
+      @EndUserText.label: 'Procedure No.'
+      ProcVal.CharcValue as ProcedureNo,
+
+      @EndUserText.label: 'Specification No.'
+      SpecVal.CharcValue as SpecificationNo,
+
+      @EndUserText.label: 'Material Name'
+      Lot.InspectionLotObjectText as MaterialName,
+
+      @EndUserText.label: 'Supplier'
+      BP.BusinessPartnerName as Supplier,
+
+      @EndUserText.label: 'Manufacturer Name'
+      POItem.ManufacturerPartNmbr as ManufacturerName,
+
+      @EndUserText.label: 'Item Code'
+      Lot.Material as ItemCode,
+
+      @EndUserText.label: 'GRN No.'
+      Lot.MaterialDocument as GRNNo,
+
+      @EndUserText.label: 'Batch No.'
+      Lot.Batch as BatchNo,
+
+      @EndUserText.label: 'Receiving Date'
+      Lot.InspectionLotCreatedOn as ReceivingDate,
+
+      // ---> FIX: Removed the illegal UNIT cast and used a blank string as fallback
+      @EndUserText.label: 'Quantity'
+      cast( concat_with_space( 
+              cast( Lot.InspectionLotQuantity as abap.char(20) ), 
+              coalesce( UoMText.UnitOfMeasureCommercialName, '' ), 
+              1 
+      ) as abap.char(40) ) as Quantity,
+
+      @EndUserText.label: 'Exp. Date / Retest Date'
+      Bat.ShelfLifeExpirationDate as ExpiryRetestDate,
+
+      @EndUserText.label: 'Manufacturer Lot Number'
+      Lot.BatchBySupplier as ManufacturerLotNo,
+
+      ps.StorageConditions as StgCondID,
+      @Semantics.text: true
+      stgtext.TemperatureConditionIndName as StorageCondition,
+
+      @EndUserText.label: 'Remarks'
+      cast( '' as abap.char(255) ) as Remarks,
+
+      UD.InspLotUsageDecisionCodeGroup,
+      UD.InspectionLotUsageDecisionCode,
+      UD.Disposition as Disposition, 
+      Lot.InspLotSelectionValidFromDate as test1,      
+      _Char
+}

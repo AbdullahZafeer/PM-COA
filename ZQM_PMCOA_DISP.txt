@@ -1,0 +1,30 @@
+@AbapCatalog.viewEnhancementCategory: [#NONE]
+@AccessControl.authorizationCheck: #NOT_REQUIRED
+@EndUserText.label: 'AQM CoA - Disposition Text'
+@Metadata.ignorePropagatedAnnotations: true
+@ObjectModel.usageType:{
+    serviceQuality: #X,
+    sizeCategory: #S,
+    dataClass: #MIXED
+}
+define view entity ZQM_PMCOA_DISP 
+  as select from I_InspLotUsageDecision as UD
+
+  left outer join I_UsageDecisionCodeText as Text
+    on  UD.InspLotUsageDecisionCodeGroup  = Text.UsageDecisionCodeGroup
+    and UD.InspectionLotUsageDecisionCode = Text.UsageDecisionCode
+    and Text.Language = $session.system_language
+
+{
+  key UD.InspectionLot,
+      UD.InspLotUsageDecisionCodeGroup,
+      UD.InspectionLotUsageDecisionCode,
+      
+      @EndUserText.label: 'Disposition'
+      case UD.InspectionLotUsageDecisionCode
+        when 'A'  then cast( 'Accepted               Conforms with Specification' as abap.char(255) )
+        when 'A1' then cast( 'Accepted as is               Conforms with Specification' as abap.char(255) )
+        when 'R'  then cast( 'Rejected               Does not conform with Specification' as abap.char(255) )
+        else cast( Text.UsageDecisionCodeText as abap.char(255) )
+      end as Disposition
+}

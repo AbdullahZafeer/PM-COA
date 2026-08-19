@@ -1,0 +1,16 @@
+@AbapCatalog.viewEnhancementCategory: [#NONE]
+@AccessControl.authorizationCheck: #NOT_REQUIRED
+@EndUserText.label: 'Inspection Method Long Text'
+@Metadata.ignorePropagatedAnnotations: true
+define view entity ZQM_I_SPEC_LONGTEXTP
+  as select from zuploader_v2
+{
+  key text_uuid,
+  key inspection_method as InspectionMethod,
+  key plant             as Plant,
+  valid_from        as ValidFrom,
+  created_at        as CreatedAt,
+  @EndUserText.label: 'Inspection Method Long Text'
+  longtext          as LongText,
+  bintohex( text_uuid ) as TextUUIDHex
+}
